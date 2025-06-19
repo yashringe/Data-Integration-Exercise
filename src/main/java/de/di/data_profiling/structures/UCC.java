@@ -19,6 +19,11 @@ public class UCC {
     private final Relation relation;
     private final AttributeList attributeList;
 
+    public UCC(Relation relation, AttributeList combined, Relation relation1, AttributeList attributeList) {
+        this.relation = relation1;
+        this.attributeList = attributeList;
+    }
+
     @Override
     public String toString() {
         return "UCC(" + this.relation.getName() + this.attributeList + ")";
