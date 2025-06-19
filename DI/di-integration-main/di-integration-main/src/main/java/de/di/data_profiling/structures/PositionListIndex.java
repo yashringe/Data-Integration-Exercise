@@ -4,13 +4,11 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Getter
-@Setter
 public class PositionListIndex {
 
     private final AttributeList attributes;
@@ -58,7 +56,7 @@ public class PositionListIndex {
     public PositionListIndex intersect(PositionListIndex other) {
         List<IntArrayList> clustersIntersection = this.intersect(this.clusters, other.getInvertedClusters());
         AttributeList attributesUnion = this.attributes.union(other.getAttributes());
-//ringewashere
+
         return new PositionListIndex(attributesUnion, clustersIntersection, this.relationLength());
     }
 
@@ -71,30 +69,9 @@ public class PositionListIndex {
         // invertedClusters. The clustersIntersection is a new list that stores the intersection result. Note that    //
         // the clusters are "Stripped Partitions", which means that only clusters of size >1 are part of the result.  //
 
-        // Map to hold intersection clusters using a composite key based on both cluster indices
-        Map<Integer, Int2ObjectMap<IntArrayList>> tempClusters = new HashMap<>();
 
-        for (int i = 0; i < clusters.size(); i++) {
-            IntArrayList cluster = clusters.get(i);
-            for (int recordId : cluster) {
-                int otherClusterId = invertedClusters[recordId];
-                if (otherClusterId == -1) continue; // Skip records that are not part of any cluster in other PLI
 
-                tempClusters.putIfAbsent(i, new Int2ObjectArrayMap<>());
-                Int2ObjectMap<IntArrayList> subMap = tempClusters.get(i);
-                subMap.putIfAbsent(otherClusterId, new IntArrayList());
-                subMap.get(otherClusterId).add(recordId);
-            }
-        }
-
-        for (Int2ObjectMap<IntArrayList> subMap : tempClusters.values()) {
-            for (IntArrayList intersectionCluster : subMap.values()) {
-                if (intersectionCluster.size() > 1) {
-                    clustersIntersection.add(intersectionCluster);
-                }
-            }
-        }
-
+        //                                                                                                            //
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         return clustersIntersection;
