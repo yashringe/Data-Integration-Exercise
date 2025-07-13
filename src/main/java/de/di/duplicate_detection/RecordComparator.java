@@ -54,9 +54,20 @@ public class RecordComparator {
         // Compare the two tuples with the similarity functions specified by the internal AttrSimWeight objects.      //
         // To calculate the overall tuple similarity, calculate the weighted average similarity of all individual     //
         // attribute similarities; the weights are also stored in the internal AttrSimWeight objects.                 //
+        int n = attrSimWeights.size();
+//        int n = Math.min(tuple1.length, tuple2.length);
+        for (int i = 0; i < n; i++) {
+            AttrSimWeight attrSimWeight = attrSimWeights.get(i);
+            SimilarityMeasure similarityMeasure = attrSimWeight.getSimilarityMeasure();
+            double weight = attrSimWeight.getWeight();
+            if (weight == 0.0) {continue;}
+            String string1 = tuple1[i];
+            String string2 = tuple2[i];
+            double similarity = similarityMeasure.calculate(string1, string2);
+            recordSimilarity += similarity * weight;
+        }
 
-
-
+//      ringewashere
         //                                                                                                            //
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

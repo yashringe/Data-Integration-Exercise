@@ -5,11 +5,13 @@ import de.di.duplicate_detection.structures.AttrSimWeight;
 import de.di.duplicate_detection.structures.Duplicate;
 import de.di.similarity_measures.Jaccard;
 import de.di.similarity_measures.Levenshtein;
+import de.di.similarity_measures.SimilarityMeasure;
 import de.di.similarity_measures.helper.Tokenizer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SortedNeighborhood {
 
@@ -49,8 +51,40 @@ public class SortedNeighborhood {
         // Discover all duplicates in the provided relation. A duplicate stores the attribute indexes that refer to   //
         // matching records. Use the provided sortingKeys, windowSize, and recordComparator to implement the Sorted   //
         // Neighborhood Method correctly.                                                                             //
+        RecordComparator rc2 = suggestRecordComparatorFor(relation);
+        for (int key : sortingKeys) {
+            Arrays.sort(records, Comparator.comparing(o -> o.getValues()[key]));
 
-
+            // Apply sliding window
+            for (int i = 0; i < records.length - windowSize + 1; i++) {
+                for (int j = i + 1; j < i + windowSize && j < records.length; j++) {
+                    Record record1 = records[i];
+                    Record record2 = records[j];
+                    double similarity = rc2.compare(record1.getValues(), record2.getValues());
+                    if (recordComparator.isDuplicate(similarity)) {
+                        duplicates.add(new Duplicate(record1.getIndex(), record2.getIndex(), similarity, relation));
+                    }
+                }
+            }
+        }
+//      ringewashere
+        //            for (int i = 0; i < records.length - windowSize - 1; i++) {
+//
+//                int windowStart = i;
+//                int windowEnd = Math.min(i + windowSize, records.length);
+//
+//                for (int j=windowStart; j<windowEnd; j++) {
+//                    for (int k=j+1; k<windowEnd; k++) {
+//                        String[] tuple1 = records[j].getValues();
+//                        String[] tuple2 = records[k].getValues();
+//                        double similarity = recordComparator.compare(tuple1, tuple2);
+//                        if (recordComparator.isDuplicate(similarity)) {
+//                            duplicates.add(new Duplicate(records[j].getIndex(), records[k].getIndex(), similarity, relation));
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         //                                                                                                            //
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,11 +110,55 @@ public class SortedNeighborhood {
         // is usually learned by machine learning algorithms, but a creative, heuristics-based solution is sufficient //
         // here.                                                                                                      //
 
+        for (int i = 0; i < relation.getAttributes().length; i++) {
+            String attributeName = relation.getAttributes()[i].toLowerCase();
+            SimilarityMeasure similarityMeasure;
+            double weight;
 
+            if (attributeName.contains("artist")) {
+                similarityMeasure = new Jaccard(new Tokenizer(3, true), false);
+                weight = 0.2;
+            } else if (attributeName.contains("title")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.1;
+            } else if (attributeName.contains("id")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.1;
+            } else if (attributeName.contains("pk")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.1;
+            } else if (attributeName.contains("category")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.15;
+            } else if (attributeName.contains("genre")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.15;
+            } else if (attributeName.contains("year")) {
+                similarityMeasure = new Jaccard(new Tokenizer(3, true), false);
+                weight = 0.2;
+            } else if (attributeName.contains("track0")) {
+                similarityMeasure = new Levenshtein(true);
+                weight = 0.04;
+            } else {
+                similarityMeasure = new Levenshtein(false);
+                weight = 0.0;
+            }
 
+            attrSimWeights.add(new AttrSimWeight(i, similarityMeasure, weight));
+        }
+
+        // Normalize weights
+        double totalWeight = attrSimWeights.stream().mapToDouble(AttrSimWeight::getWeight).sum();
+        List<AttrSimWeight> normalizedAttrSimWeights = attrSimWeights.stream()
+                .map(attrSimWeight -> new AttrSimWeight(
+                        attrSimWeight.getAttribute(),
+                        attrSimWeight.getSimilarityMeasure(),
+                        attrSimWeight.getWeight() / totalWeight))
+                .collect(Collectors.toList());
+        threshold = 0.9;
         //                                                                                                            //
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        return new RecordComparator(attrSimWeights, threshold);
+        return new RecordComparator(normalizedAttrSimWeights, threshold);
     }
 }
